@@ -5,6 +5,17 @@ const jwt = require("jsonwebtoken");
 const {authMiddleware}=require("../middlewares/authMiddleware");
 const ExpressError = require("../utils/ExpressError");
 const wrapAsync = require("../utils/wrapAsync");
+const User = require("../models/User");
+const { roleMiddleware } = require("../middlewares/roleMiddleware");
+
+router.get(
+    "/admin",
+    authMiddleware,
+    roleMiddleware("admin"),
+    (req, res) => {
+        res.json({ message: "Welcome Admin" });
+    }
+);
 
 const users = [];
 
@@ -16,21 +27,14 @@ router.post("/register", wrapAsync(async (req, res) => {
             throw new ExpressError("Email and password are required",400);
         }
 
-        //Check duplicate email
-        const existingUser = users.find(user => user.email === email);
-
-        if (existingUser) {
-            throw new ExpressError("User already exists",409);
-        }
-
         //Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        //Store user
-        users.push({
-            email,
-            password: hashedPassword
-        });
+        //Add user in database
+        await User.create({
+                email,
+                password: hashedPassword
+            });
 
         //Return success
         return res.status(201).json({
@@ -39,35 +43,30 @@ router.post("/register", wrapAsync(async (req, res) => {
 
     }));
 
-router.post("/login",wrapAsync( async (req, res) => {
-
+    router.post("/login", wrapAsync(async (req, res) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
-        throw new ExpressError("Invalid Credentials",401);
+            throw new ExpressError("Email and password required", 400);
         }
 
-        const user= users.find(u=>u.email===email)
+        const user = await User.findOne({ email });
         if (!user) {
-            throw new ExpressError("Invalid Credentials",401);
+            throw new ExpressError("Invalid Credentials", 401);
         }
 
-        const isMatch = await bcrypt.compare(password,user.password);
-
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-           throw new ExpressError("Invalid Credentials",401);
+            throw new ExpressError("Invalid Credentials", 401);
         }
 
         const token = jwt.sign(
-            { email: user.email },
+            { id: user._id },
             process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
-
-        return res.status(200).json({
-            token
-        });
-}));
+        return res.status(200).json({ token });
+    }));
 
 router.get("/profile",authMiddleware,(req,res)=>{
     return res.status(200).json({
@@ -75,5 +74,10 @@ router.get("/profile",authMiddleware,(req,res)=>{
         user:req.user
     })
 });
+
+router.get("/admin",authMiddleware,roleMiddleware("admin"),(req, res) => {
+        res.json({ message: "Welcome Admin" });
+    }
+);
 
 module.exports=router;
