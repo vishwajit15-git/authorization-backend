@@ -1,5 +1,6 @@
 const express=require("express");
 const router=express.Router();
+const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const {authMiddleware}=require("../middlewares/authMiddleware");
@@ -8,16 +9,7 @@ const wrapAsync = require("../utils/wrapAsync");
 const User = require("../models/User");
 const { roleMiddleware } = require("../middlewares/roleMiddleware");
 
-router.get(
-    "/admin",
-    authMiddleware,
-    roleMiddleware("admin"),
-    (req, res) => {
-        res.json({ message: "Welcome Admin" });
-    }
-);
 
-const users = [];
 
 router.post("/register", wrapAsync(async (req, res) => {
         const { email, password } = req.body;
@@ -79,5 +71,28 @@ router.get("/admin",authMiddleware,roleMiddleware("admin"),(req, res) => {
         res.json({ message: "Welcome Admin" });
     }
 );
+
+router.get("/test-transaction", async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        await User.create([{ email: "txn@test.com", password: "123456" }], { session });
+
+        // Force failure
+        throw new Error("Forcing rollback");
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.json({ message: "Transaction committed" });
+
+    } catch (err) {
+        await session.abortTransaction();
+        session.endSession();
+
+        res.json({ message: "Transaction aborted" });
+    }
+});
 
 module.exports=router;

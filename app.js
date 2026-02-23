@@ -4,10 +4,9 @@ const app=express();
 
 const mongoose = require("mongoose");
 
-mongoose.connect("mongodb://127.0.0.1:27017/auth")
-  .then(() => console.log("MongoDB Connected"))
+mongoose.connect("mongodb://127.0.0.1:27017/auth?replicaSet=rs0")
+  .then(() => console.log("MongoDB Connected (Replica Set)"))
   .catch(err => console.log(err));
-
 
 const routes=require("./routes/authRoutes");
 const { errorMiddleware } = require("./middlewares/errorMiddleware");
