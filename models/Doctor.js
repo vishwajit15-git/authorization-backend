@@ -3,9 +3,10 @@ const mongoose = require("mongoose");
 const doctorSchema=new mongoose.Schema({
     name:{
         type:String,
-        required:true
+        required:true,
+        trim:true
     },
-    speciality:{
+    specialization:{
         type:String,
         required:true
     },

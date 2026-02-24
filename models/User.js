@@ -17,7 +17,8 @@ const userSchema = new mongoose.Schema({
     },
     clinicId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Clinic"
+        ref:"Clinic",
+        required:true
     }
 }, { timestamps: true });
 
