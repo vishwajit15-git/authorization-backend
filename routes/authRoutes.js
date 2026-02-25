@@ -9,7 +9,10 @@ const wrapAsync = require("../utils/wrapAsync");
 const User = require("../models/User");
 const { roleMiddleware } = require("../middlewares/roleMiddleware");
 const Clinic = require("../models/Clinic");
-const Doctor=require("../models/Doctor");
+const validate = require("../middlewares/validationMiddleware");
+const doctorSchema = require("../validators/doctorValidator");
+const doctorController = require("../controllers/doctorController");
+const clinicController = require("../controllers/clinicController");
 
 
 
@@ -96,100 +99,20 @@ router.get("/whoami", authMiddleware, (req, res) => {
     });
 });
 
-
-
-router.post("/register-clinic",wrapAsync(async(req,res)=>{
-    const session= await mongoose.startSession();  //startSession() opens isolated workspace
-    session.startTransaction();  //initializes the transaction [From this point, treat operations as atomic.]
-
-    try{
-        const {clinicName,email,password}=req.body;
-
-        //check if all details are filled 
-        if(!clinicName || !email || !password){
-            throw new ExpressError("All fields required",400);
-        }
-        
-        //create clinic
-        const clinic=await Clinic.create([{
-            name:clinicName
-        }],{session})
-
-        ///hash the password
-        const hashedPassword=await bcrypt.hash(password,10);
-
-        //create admin user
-        const user=await User.create([{
-            email,
-            password:hashedPassword,
-            clinicId:clinic[0]._id,
-            role:"admin",
-        }],{session});
-
-
-        await session.commitTransaction(); //Everything went well.Make all changes permanent.
-        session.endSession();//closes the isolated workspace
-
-        const token = jwt.sign(
-            {
-                id: user[0]._id,
-                clinicId: user[0].clinicId,
-                role: user[0].role
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: "1h" }
-        );
-
-        return res.status(201).json({
-            message: "Clinic registered successfully",
-            token
-        });
-    }catch(err){
-        await session.abortTransaction();//Something failed.Pretend none of this happened.
-        session.endSession();
-        throw err;
-    }
-}));
-
+router.post(
+    "/register-clinic",
+    wrapAsync(clinicController.registerClinic)
+);
 
 router.post("/doctors",
     authMiddleware,
-    wrapAsync(async (req, res) => {
+    roleMiddleware("admin"),
+    validate(doctorSchema),
+    wrapAsync(doctorController.createDoctor));
 
-        const { name, specialization } = req.body;
-
-        if (!name || !specialization) {
-            throw new ExpressError("All fields required", 400);
-        }
-
-        console.log("req.user:", req.user);  // debug
-
-        const doctor = await Doctor.create({
-            name,
-            specialization,
-            clinicId: req.user.clinicId
-        });
-
-        return res.status(201).json({
-            message: "Doctor created successfully",
-            doctor
-        });
-}));
-
-router.get("/doctors",authMiddleware,wrapAsync(async(req,res)=>{
-     const doctors = await Doctor.find({
-        clinicId: req.user.clinicId   // TENANT FILTER
-    });
-
-    return res.status(200).json({
-        doctors
-    });
-}));
-
+router.get("/doctors",authMiddleware,wrapAsync(doctorController.getDoctors));
 
 module.exports=router;
-
-
 
 // START TRANSACTION
 
