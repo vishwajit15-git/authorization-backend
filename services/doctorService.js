@@ -9,7 +9,12 @@ const getDoctors = async (user) => {
     return await baseTenantService.findAll(Doctor, user);
 };
 
+const deleteDoctor=async(id,user)=>{
+    return await baseTenantService.softDelete(Doctor,id,user);
+}
+
 module.exports = {
     createDoctor,
-    getDoctors
+    getDoctors,
+    deleteDoctor
 };

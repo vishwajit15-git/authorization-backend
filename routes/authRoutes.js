@@ -112,6 +112,13 @@ router.post("/doctors",
 
 router.get("/doctors",authMiddleware,wrapAsync(doctorController.getDoctors));
 
+router.delete(
+    "/doctors/:id",
+    authMiddleware,
+    roleMiddleware("admin"),
+    wrapAsync(doctorController.deleteDoctor)
+);
+
 module.exports=router;
 
 // START TRANSACTION
