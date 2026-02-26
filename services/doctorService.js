@@ -1,19 +1,13 @@
 const Doctor = require("../models/Doctor");
+const baseTenantService = require("./baseTenantService");
 
-//for post 
-const createDoctor=async(data,user)=>{
-    return await Doctor.create({
-        name:data.name,
-        specialization:data.specialization,
-        clinicId:user.clinicId
-    });
+const createDoctor = async (data, user) => {
+    return await baseTenantService.create(Doctor, data, user);
 };
 
-const getDoctors=async(user)=>{
-     return await Doctor.find({
-        clinicId: user.clinicId
-    });
-}
+const getDoctors = async (user) => {
+    return await baseTenantService.findAll(Doctor, user);
+};
 
 module.exports = {
     createDoctor,

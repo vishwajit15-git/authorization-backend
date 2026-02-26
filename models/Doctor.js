@@ -14,6 +14,10 @@ const doctorSchema=new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"Clinic",
         required:true
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
 },{timestamps:true});
 
